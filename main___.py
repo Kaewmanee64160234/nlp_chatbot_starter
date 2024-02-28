@@ -1,17 +1,3 @@
-
-import random
-import nltk
-from fastapi import FastAPI, Form
-from pythainlp.tokenize import word_tokenize
-from pythainlp.spell import NorvigSpellChecker
-from transformers import TFT5ForConditionalGeneration, T5Tokenizer
-from pythainlp.util import dict_trie
-from pythainlp.corpus.common import thai_words
-import pythainlp
-from transformers import pipeline
-from fastapi import FastAPI, Request, Response
-from pythainlp.tokenize import word_tokenize
-from pythainlp.corpus import thai_stopwords
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 import random
@@ -19,23 +5,6 @@ from pythainlp.tokenize import word_tokenize
 import numpy as np
 import thaispellcheck
 
-mrcpipeline = pipeline("question-answering", model="MyMild/finetune_iapp_thaiqa")
-# Download necessary data
-nltk.download('punkt')
-nltk.download('stopwords')
-
-# Setup for spell checker
-custom_words = set(thai_words())
-trie = dict_trie(dict_source=custom_words)
-spell_checker = NorvigSpellChecker(custom_dict=trie)
-from transformers import pipeline
-from transformers import pipeline
-from linebot.models import MessageEvent, TextMessage, TextSendMessage
-from linebot.exceptions import LineBotApiError, InvalidSignatureError
-from linebot import LineBotApi, WebhookHandler
-from fastapi.responses import JSONResponse
-from starlette.status import HTTP_405_METHOD_NOT_ALLOWED
-app = FastAPI()
 dataset = {
     "เกณฑ์การรับสมัคร": {
         "examples": ["เกณฑ์การรับสมัคร", "กำหนดการสมัคร", "กำหนดการสมัครเป็นอย่างไรบ้าง", 'กำหนดการสมัครคิดยังไงง'],
@@ -82,7 +51,7 @@ dataset = {
         "responses": ["วิทยาการคอมพิวเตอร์ (Computer Science: CS), เป็นศาสตร์เกี่ยวกับการศึกษาค้นคว้าทฤษฏีการคำนวณสำหรับคอมพิวเตอร์, และทฤษฏีการประมวลผลสารสนเทศ, ทั้งด้านซอฟต์แวร์, ฮาร์ดแวร์, และเครือข่าย, ประกอบด้วยหลายหัวข้อที่เกี่ยวข้อง, เช่น, การวิเคราะห์และสังเคราะห์ขั้นตอนวิธี, ทฤษฏีภาษาโปรแกรม, ทฤษฏีการพัฒนาซอฟต์แวร์, ทฤษฎีฮาร์ดแวร์คอมพิวเตอร์, และทฤษฏีเครือข่าย"]
     },
     "IT": {
-        "examples": ["IT","ITDI", "ITคืออะไร", "ITคืออะไรคะ", "ITคืออะไรครับ", "ITคืออะไรคะ", "ITคืออะไรครับ", "ITคืออะไรคะ", "ITคืออะไรครับ", "ITคืออะไรคะ", "ITคืออะไรครับ", "สาขา IT", "IT เรียนอะไรบ้าง"],
+        "examples": ["IT", "ITคืออะไร", "ITคืออะไรคะ", "ITคืออะไรครับ", "ITคืออะไรคะ", "ITคืออะไรครับ", "ITคืออะไรคะ", "ITคืออะไรครับ", "ITคืออะไรคะ", "ITคืออะไรครับ", "สาขา IT", "IT เรียนอะไรบ้าง"],
         "responses": ["เทคโนโลยีสารสนเทศเพื่ออุตสาหกรรมดิจิทัล (Information Technology for Digital Industry : ITDI), เป็นศาสตร์เกี่ยวกับการประยุกต์ใช้เทคโนโลยีในการประมวลผลสารสนเทศ, ซึ่งครอบคลุมถึงการรับ-ส่ง, การแปลง, การจัดเก็บ, การประมวลผล, และการค้นคืนสารสนเทศ, เป็นการประยุกต์ใช้ทฤษฎีและขั้นตอนวิธีจากวิทยาการคอมพิวเตอร์ในการทำงาน, การศึกษาอุปกรณ์ต่างๆทางเทคโนโลยีสารสนเทศ, การวางโครงสร้างสถาปัตยกรรมองค์กรด้วยเทคโนโลยีสารสนเทศอย่างมีประสิทธิภาพสูงสุดกับสังคม ธุรกิจ องค์กร หรืออุตสาหกรรม"]
 
     },
@@ -116,89 +85,11 @@ dataset = {
         "responses": ["สามารถฝึกงานได้ที่บริษัทต่างๆ ที่เกี่ยวข้องกับสาขาวิชาที่เรียนอยู่ ค่ะ"]
     },
 }
-rule_based_responses = {
-    "เกณฑ์การรับสมัคร": "เกณฑ์การรับสมัครประกอบด้วย GPA ขั้นต่ำ 3.0, การเสร็จสิ้นหลักสูตรพื้นฐาน, และการส่งคำชี้แจงส่วนบุคคล",
-    "กำหนดการสมัคร": "กำหนดการสมัครสำหรับฤดูใบไม้ร่วง 2022 คือ 30 มิถุนายน 2022",
-    
 
-    "คณะวิทยาการสารสนเทศ": "มีเป็นช่วงๆค่ะ, กิจกรรมจะมีเยอะในช่วงปี 1, ซึ่งส่วนใหญ่จะเป็นกิจกรรมของมหาลัยค่ะ",
-    "คณะ": "มีเป็นช่วงๆค่ะ, กิจกรรมจะมีเยอะในช่วงปี 1, ซึ่งส่วนใหญ่จะเป็นกิจกรรมของมหาลัยค่ะ",
-    "กิจกรรม": "มีเป็นช่วงๆค่ะ, กิจกรรมจะมีเยอะในช่วงปี 1, ซึ่งส่วนใหญ่จะเป็นกิจกรรมของมหาลัยค่ะ",
 
-    "สาขา IT": "สาขาวิชาเทคโนโลยีสารสนเทศเพื่ออุตสาหกรรมดิจิทัล(ITDI) , ต้องมีความรู้พื้นฐานเกี่ยวกับคณิตศาสตร์, หลักการโปรแกรม, ความน่าจะเป็นและสถิติสําหรับคอมพิวเตอร์, หลักการโปรแกรมเชิงวัตถุ, โครงสร้างขอมูลและอัลกอริทึม, ซึ่งรายวิชาพวกนี้เป็นรายวิชาหมวดวิชาศึกษาทั่วไป, จึงควรศึกษาไว้, เพื่อเตรียมตัวเข้าเรียนในสาขาวิชาเทคโนโลยีสารสนเทศเพื่ออุตสาหกรรมดิจิทัล(IT), ค่ะ",
-    "IT": "สาขาวิชาเทคโนโลยีสารสนเทศเพื่ออุตสาหกรรมดิจิทัล(ITDI) , ต้องมีความรู้พื้นฐานเกี่ยวกับคณิตศาสตร์, หลักการโปรแกรม, ความน่าจะเป็นและสถิติสําหรับคอมพิวเตอร์, หลักการโปรแกรมเชิงวัตถุ, โครงสร้างขอมูลและอัลกอริทึม, ซึ่งรายวิชาพวกนี้เป็นรายวิชาหมวดวิชาศึกษาทั่วไป, จึงควรศึกษาไว้, เพื่อเตรียมตัวเข้าเรียนในสาขาวิชาเทคโนโลยีสารสนเทศเพื่ออุตสาหกรรมดิจิทัล(IT), ค่ะ",
-    "ITDI": "สาขาวิชาเทคโนโลยีสารสนเทศเพื่ออุตสาหกรรมดิจิทัล(ITDI) , ต้องมีความรู้พื้นฐานเกี่ยวกับคณิตศาสตร์, หลักการโปรแกรม, ความน่าจะเป็นและสถิติสําหรับคอมพิวเตอร์, หลักการโปรแกรมเชิงวัตถุ, โครงสร้างขอมูลและอัลกอริทึม, ซึ่งรายวิชาพวกนี้เป็นรายวิชาหมวดวิชาศึกษาทั่วไป, จึงควรศึกษาไว้, เพื่อเตรียมตัวเข้าเรียนในสาขาวิชาเทคโนโลยีสารสนเทศเพื่ออุตสาหกรรมดิจิทัล(IT), ค่ะ",
-    "เตรียมตัว": "สาขาวิชาเทคโนโลยีสารสนเทศเพื่ออุตสาหกรรมดิจิทัล(ITDI) , ต้องมีความรู้พื้นฐานเกี่ยวกับคณิตศาสตร์, หลักการโปรแกรม, ความน่าจะเป็นและสถิติสําหรับคอมพิวเตอร์, หลักการโปรแกรมเชิงวัตถุ, โครงสร้างขอมูลและอัลกอริทึม, ซึ่งรายวิชาพวกนี้เป็นรายวิชาหมวดวิชาศึกษาทั่วไป, จึงควรศึกษาไว้, เพื่อเตรียมตัวเข้าเรียนในสาขาวิชาเทคโนโลยีสารสนเทศเพื่ออุตสาหกรรมดิจิทัล(IT), ค่ะ",
-    "เทคโนโลยีสารสนเทศเพื่ออุตสาหกรรมดิจิทัล(ITDI)": "สาขาวิชาเทคโนโลยีสารสนเทศเพื่ออุตสาหกรรมดิจิทัล(ITDI) , ต้องมีความรู้พื้นฐานเกี่ยวกับคณิตศาสตร์, หลักการโปรแกรม, ความน่าจะเป็นและสถิติสําหรับคอมพิวเตอร์, หลักการโปรแกรมเชิงวัตถุ, โครงสร้างขอมูลและอัลกอริทึม, ซึ่งรายวิชาพวกนี้เป็นรายวิชาหมวดวิชาศึกษาทั่วไป, จึงควรศึกษาไว้, เพื่อเตรียมตัวเข้าเรียนในสาขาวิชาเทคโนโลยีสารสนเทศเพื่ออุตสาหกรรมดิจิทัล(IT), ค่ะ",
-    "เรียน": "สาขาวิชาเทคโนโลยีสารสนเทศเพื่ออุตสาหกรรมดิจิทัล(ITDI) , ต้องมีความรู้พื้นฐานเกี่ยวกับคณิตศาสตร์, หลักการโปรแกรม, ความน่าจะเป็นและสถิติสําหรับคอมพิวเตอร์, หลักการโปรแกรมเชิงวัตถุ, โครงสร้างขอมูลและอัลกอริทึม, ซึ่งรายวิชาพวกนี้เป็นรายวิชาหมวดวิชาศึกษาทั่วไป, จึงควรศึกษาไว้, เพื่อเตรียมตัวเข้าเรียนในสาขาวิชาเทคโนโลยีสารสนเทศเพื่ออุตสาหกรรมดิจิทัล(IT), ค่ะ",
-    "เทคโนโลยีสารสนเทศเพื่ออุตสาหกรรมดิจิทัล": "สาขาวิชาเทคโนโลยีสารสนเทศเพื่ออุตสาหกรรมดิจิทัล(ITDI) , ต้องมีความรู้พื้นฐานเกี่ยวกับคณิตศาสตร์, หลักการโปรแกรม, ความน่าจะเป็นและสถิติสําหรับคอมพิวเตอร์, หลักการโปรแกรมเชิงวัตถุ, โครงสร้างขอมูลและอัลกอริทึม, ซึ่งรายวิชาพวกนี้เป็นรายวิชาหมวดวิชาศึกษาทั่วไป, จึงควรศึกษาไว้, เพื่อเตรียมตัวเข้าเรียนในสาขาวิชาเทคโนโลยีสารสนเทศเพื่ออุตสาหกรรมดิจิทัล(IT), ค่ะ",
 
-    "สาขา IT": "ค่าใช้จ่ายตลอดหลักสูตรโดยประมาณ184,000บาท  , (ภาคการศึกษาละ23,000บาท), ค่ะ",
-    "IT": "ค่าใช้จ่ายตลอดหลักสูตรโดยประมาณ184,000บาท  , (ภาคการศึกษาละ23,000บาท), ค่ะ",
-    "ITDI": "ค่าใช้จ่ายตลอดหลักสูตรโดยประมาณ184,000บาท  , (ภาคการศึกษาละ23,000บาท), ค่ะ",
-    "ค่าเทอม": "ค่าใช้จ่ายตลอดหลักสูตรโดยประมาณ184,000บาท  , (ภาคการศึกษาละ23,000บาท), ค่ะ",
-    "ค่าเทอมคณะ": "ค่าใช้จ่ายตลอดหลักสูตรโดยประมาณ184,000บาท  , (ภาคการศึกษาละ23,000บาท), ค่ะ",
-    "เทคโนโลยีสารสนเทศเพื่ออุตสาหกรรมดิจิทัล(ITDI)": "ค่าใช้จ่ายตลอดหลักสูตรโดยประมาณ184,000บาท  , (ภาคการศึกษาละ23,000บาท), ค่ะ",
-    "ค่าใช้จ่ายตลอดหลักสูตร": "ค่าใช้จ่ายตลอดหลักสูตรโดยประมาณ184,000บาท  , (ภาคการศึกษาละ23,000บาท), ค่ะ",
-    "เทคโนโลยีสารสนเทศเพื่ออุตสาหกรรมดิจิทัล": "ค่าใช้จ่ายตลอดหลักสูตรโดยประมาณ184,000บาท  , (ภาคการศึกษาละ23,000บาท), ค่ะ",
-
-    "คณะวิทยาการสารสนเทศ": ["สังคมที่นี่ดีค่ะ , คนในคณะส่วนใหญ่, จะค่อนข้างช่วยเหลือกันและกัน, ทั้งเรื่องการเรียน"],
-    "IT": ["ค่าใช้จ่ายตลอดหลักสูตรโดยประมาณ184,000บาท  , (ภาคการศึกษาละ23,000บาท), ค่ะ"],
-    "ITDI": ["ค่าใช้จ่ายตลอดหลักสูตรโดยประมาณ184,000บาท  , (ภาคการศึกษาละ23,000บาท), ค่ะ"],
-    "ค่าเทอม": ["ค่าใช้จ่ายตลอดหลักสูตรโดยประมาณ184,000บาท  , (ภาคการศึกษาละ23,000บาท), ค่ะ"],
-    "เทคโนโลยีสารสนเทศเพื่ออุตสาหกรรมดิจิทัล(ITDI)": ["ค่าใช้จ่ายตลอดหลักสูตรโดยประมาณ184,000บาท  , (ภาคการศึกษาละ23,000บาท), ค่ะ"],
-    "ค่าใช้จ่ายตลอดหลักสูตร": ["ค่าใช้จ่ายตลอดหลักสูตรโดยประมาณ184,000บาท  , (ภาคการศึกษาละ23,000บาท), ค่ะ"],
-    "เทคโนโลยีสารสนเทศเพื่ออุตสาหกรรมดิจิทัล": ["ค่าใช้จ่ายตลอดหลักสูตรโดยประมาณ184,000บาท  , (ภาคการศึกษาละ23,000บาท), ค่ะ"],
-}
-con = ' '.join(''.join(value) if isinstance(value, list) else value for value in rule_based_responses.values())
-
-line_bot_api = LineBotApi('W8wWPV62rWD9TEBEzZ0l3ZLVKXR3JZ5XhVMGMekvgG+9J2OgGxDQCBTj1ok/raQm44+BdgrL/vMjC193Mx4Qn8qfVpe98av9c3rFtRQ5vpiQ5XRIxfYyamR9FyC9EUz1XSOgGXRHQK6DbKkQWtONWAdB04t89/1O/w1cDnyilFU=')
-handler = WebhookHandler('9807cfec5558c0338f2853f050eb1667')
-@app.get("/")  # Handles GET requests for verification
-async def verify_line_webhook(request: Request):
-    print(request)
-    # LINE sends a verification challenge as a query parameter
-    challenge = request.query_params.get("hub.challenge")
-    if challenge:
-        # Echo the challenge back in the response
-        return JSONResponse(content={"challenge": challenge}, status_code=200)
-    else:
-        # No challenge found, return an appropriate response
-        return JSONResponse(content={"message": "Challenge not found"}, status_code=400)
-
-@app.post("/")  # Your actual webhook handling POST requests
-async def handle_webhook(request: Request):
-    # Your webhook handling logic here
-    return JSONResponse(content={"message": "Webhook received"}, status_code=200)
-
-@app.post("/ask")
-async def ask_question(question: str = Form(...)):
-    print("Received question:", question)
-    
-    # Early return if the question is empty
-    if not question.strip():
-        return {"response": "กรุณาใส่คำถาม"}  # "Please enter a question"
-    
-    # Apply Thai spell check and correction
-    corrected_question = thaispellcheck.check(question, autocorrect=True)
-    print("Corrected question:", corrected_question)
-    
-    # Attempt to get a predefined answer
-    response = predefined_answer(corrected_question)
-    
-    if response:
-        print("Predefined response:", response)
-        return {"response": response}
-    else:
-        # If no predefined answer, preprocess the corrected question and generate an answer
-        processed_question = preprocess_text(corrected_question, lang='th')
-        generated_response = generate_answer(processed_question)
-        print("Generated response:", generated_response)
-        return {"response": generated_response}
-
-sentences = [example for intent_data in dataset.values() for example in intent_data["examples"]]
-labels = [intent for intent, intent_data in dataset.items() for _ in intent_data["examples"]]
-
+sentences = []
+labels = []
 for intent, intent_data in dataset.items():
     for example in intent_data["examples"]:
         sentences.append(example)
@@ -207,56 +98,24 @@ for intent, intent_data in dataset.items():
 # Creating TF-IDF model
 vectorizer = TfidfVectorizer()
 X = vectorizer.fit_transform(sentences)
+
 def chatbot_response(text):
-    # Vectorize the input text
+    # Transform input text
     text_vector = vectorizer.transform([text])
-    # Calculate similarities with the dataset
+
+    # Calculate similarities
     similarities = cosine_similarity(text_vector, X)
-    max_similarity = np.max(similarities)
-    
-    # Define a threshold for determining a match (you may need to adjust this value)
-    similarity_threshold = 0.1  # Example threshold
-    
-    if max_similarity < similarity_threshold:
-        # If similarity is below threshold, return "I don't understand"
-        return "ขออภัยค่ะ ฉันไม่เข้าใจคำถามของคุณ กรุณาถามคำถามใหม่อีกครั้งค่ะ"
-    
-    # If above threshold, find the closest matching intent
+
+    # Find the closest example
     closest = np.argmax(similarities, axis=1)[0]
+
+    # Identify the intent
     intent = labels[closest]
+
+    # Select a random response
     response = random.choice(dataset[intent]["responses"])
     return response
 
 
-def preprocess_text(text, lang='th'):
-    if lang != 'th':
-        raise ValueError("This function currently only supports Thai language.")
-    words = word_tokenize(text, keep_whitespace=False)
-    corrected_words = [spell_checker.correct(word) for word in words]
-    return ' '.join(corrected_words)
 
 
-def generate_answer(question):
-    response = mrcpipeline(question=question, context=con)
-    return response['answer']
-
-
-
-# Example usage
-def predefined_answer(question):
-    tokens_newmm = word_tokenize(question)
-    user_input = ' '.join(tokens_newmm)
-    response = chatbot_response(user_input)
-    if response:  # Checks if `response` is not None or an empty string
-        return response
-    else:
-        return None  # Returns None if no satisfactory answer can be generated
-
-
-def clean_response(response_text):
-    cleaned_text = response_text.replace("<extra_id_0>", "")
-    return cleaned_text
-
-if __name__ == '__main__':
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
