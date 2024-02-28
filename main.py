@@ -170,31 +170,37 @@ async def verify_line_webhook(request: Request):
 async def handle_webhook(request: Request):
     # Your webhook handling logic here
     return JSONResponse(content={"message": "Webhook received"}, status_code=200)
+@app.post("/webhook")
+async def line_webhook(request: Request):
+    # Get request body as text
+    body = await request.body()
+    body_text = body.decode("utf-8")
 
-@app.post("/ask")
-async def ask_question(question: str = Form(...)):
-    print("Received question:", question)
-    
-    # Early return if the question is empty
-    if not question.strip():
-        return {"response": "กรุณาใส่คำถาม"}  # "Please enter a question"
-    
-    # Apply Thai spell check and correction
-    corrected_question = thaispellcheck.check(question, autocorrect=True)
-    print("Corrected question:", corrected_question)
-    
-    # Attempt to get a predefined answer
-    response = predefined_answer(corrected_question)
-    
-    if response:
-        print("Predefined response:", response)
-        return {"response": response}
-    else:
-        # If no predefined answer, preprocess the corrected question and generate an answer
-        processed_question = preprocess_text(corrected_question, lang='th')
-        generated_response = generate_answer(processed_question)
-        print("Generated response:", generated_response)
-        return {"response": generated_response}
+    # Get X-Line-Signature header value
+    signature = request.headers["X-Line-Signature"]
+
+    # Handle the webhook body
+    try:
+        handler.handle(body_text, signature)
+    except InvalidSignatureError:
+        return {"error": "Invalid signature."}
+    except LineBotApiError as e:
+        return {"error": str(e)}
+    return "OK"
+
+# Define how to handle text messages
+@handler.add(MessageEvent, message=TextMessage)
+def handle_text_message(event):
+    user_message = event.message.text
+
+    # Here, call your chatbot logic and get the response
+    response = predefined_answer(user_message)  # This is your chatbot function
+
+    # Respond to the user
+    line_bot_api.reply_message(
+        event.reply_token,
+        TextSendMessage(text=response)
+    )
 
 sentences = [example for intent_data in dataset.values() for example in intent_data["examples"]]
 labels = [intent for intent, intent_data in dataset.items() for _ in intent_data["examples"]]
