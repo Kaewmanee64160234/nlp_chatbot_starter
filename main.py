@@ -1,34 +1,24 @@
-
-from starlette.status import HTTP_405_METHOD_NOT_ALLOWED
+from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from linebot import LineBotApi, WebhookHandler
 from linebot.exceptions import LineBotApiError, InvalidSignatureError
 from linebot.models import MessageEvent, TextMessage, TextSendMessage
-import random
 import nltk
-from fastapi import FastAPI, Form
 from pythainlp.tokenize import word_tokenize
 from pythainlp.spell import NorvigSpellChecker
-from transformers import TFT5ForConditionalGeneration, T5Tokenizer
-from pythainlp.util import dict_trie
 from pythainlp.corpus.common import thai_words
-import pythainlp
 from transformers import pipeline
-from fastapi import FastAPI, Request, Response
-from pythainlp.tokenize import word_tokenize
-from pythainlp.corpus import thai_stopwords
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
-import random
-from pythainlp.tokenize import word_tokenize
 import numpy as np
-import thaispellcheck
+
+# Necessary for initializing your spell checker and pipeline
+nltk.download('punkt')
+nltk.download('stopwords')
+
 
 mrcpipeline = pipeline("question-answering",
                        model="MyMild/finetune_iapp_thaiqa")
-# Download necessary data
-nltk.download('punkt')
-nltk.download('stopwords')
 
 # Setup for spell checker
 custom_words = set(thai_words())
